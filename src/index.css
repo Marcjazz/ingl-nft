@@ -1,0 +1,53 @@
+@import './reset.css';
+
+html,
+body {
+    background-color: #282c34;
+    color: #FFFFFF;
+}
+
+#app {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.App {
+    text-align: center;
+}
+
+.App-logo {
+    height: 40vmin;
+    pointer-events: none;
+}
+
+.App-header {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
+}
+
+.App-link {
+    color: #61dafb;
+}
+
+button {
+    font-size: 20px;
+    border-radius: 10px;
+    background-color: #03c39a;
+    border: none;
+    color: white;
+    padding: 8px;
+    text-transform: uppercase;
+    min-width: 200px
+}
+
+button:hover {
+    background-color: #017f63;
+
+}
