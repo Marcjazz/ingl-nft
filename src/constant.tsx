@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
 export const CONNECTION_URL = 'api.devnet.solana.com';
-export const PROGRAM_ID = new PublicKey('D6c8iV5xbd4RZkGHE8fJzyWJLqYjLLqoTf4mWhofPhhT');
+export const PROGRAM_ID = new PublicKey('G5d6MNoa742nJz8XbJKE7diagi7JAWiZ266f9u9bJGwd');
 export enum Instruction {
     MintNft,
     // {

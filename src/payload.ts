@@ -18,24 +18,24 @@ export class MintNftPayload {
     @field({ type: 'u8' })
     public instruction!: Instruction;
 
-    @field({ type: 'u8' })
-    public switchboard_state_bump!: number;
+    // @field({ type: 'u8' })
+    // public switchboard_state_bump!: number;
 
-    @field({ type: 'u8' })
-    public permission_bump!: number;
+    // @field({ type: 'u8' })
+    // public permission_bump!: number;
 
     @field({ type: 'u8' })
     public log_level!: number;
 
     constructor(properties: {
         instruction: Instruction;
-        switchboard_state_bump: number;
-        permission_bump: number;
+        // switchboard_state_bump: number;
+        // permission_bump: number;
         log_level: number;
     }) {
         this.instruction = properties.instruction;
-        this.switchboard_state_bump = properties.switchboard_state_bump;
-        this.permission_bump = properties.permission_bump;
+        // this.switchboard_state_bump = properties.switchboard_state_bump;
+        // this.permission_bump = properties.permission_bump;
         this.log_level = properties.log_level;
     }
 }
@@ -74,6 +74,9 @@ export class InitPayload {
     @field({ type: 'u16' })
     public creator_royalties!: number;
 
+    @field({ type: 'u32' })
+    public governance_expiration_time!: number;
+
     @field({ type: vec('u16') })
     public rarities!: number[];
 
@@ -107,6 +110,7 @@ export class InitPayload {
         redemption_fee_duration: number;
         proposal_quorum: number;
         creator_royalties: number;
+        governance_expiration_time: number;
         rarities: number[];
         rarity_names: string[];
         twitter_handle: string;
@@ -126,6 +130,7 @@ export class InitPayload {
         this.redemption_fee_duration = properties.redemption_fee_duration;
         this.proposal_quorum = properties.proposal_quorum;
         this.creator_royalties = properties.creator_royalties;
+        this.governance_expiration_time = properties.governance_expiration_time;
         this.rarities = properties.rarities;
         this.rarity_names = properties.rarity_names;
         this.twitter_handle = properties.twitter_handle;

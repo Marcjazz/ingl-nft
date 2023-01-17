@@ -94,7 +94,7 @@ const Content: FC = () => {
         const historyBuffer: Record<string, string> = {};
         for (const key in priceFeeds) {
             historyBuffer[key] = (
-                await nftService.getWitchboardAccountInfo('mainnet-beta', priceFeeds[key])
+                await nftService.getWitchboardHistoryBuffer('mainnet-beta', priceFeeds[key])
             ).pubkey.toBase58();
         }
         // console.log({ length, historyBuffer });

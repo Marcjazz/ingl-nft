@@ -14,14 +14,15 @@ import {
     SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
     SYSVAR_RENT_PUBKEY,
     Transaction,
-    TransactionInstruction
+    TransactionInstruction,
 } from '@solana/web3.js';
 import {
     AggregatorAccount,
     AnchorWallet,
-    PermissionAccount, SwitchboardProgram,
+    PermissionAccount,
+    SwitchboardProgram,
     SwitchboardTestContext,
-    VrfAccount
+    VrfAccount,
 } from '@switchboard-xyz/solana.js';
 import assert from 'assert';
 import { Instruction, PROGRAM_ID } from './constant';
@@ -218,32 +219,33 @@ export class NftService {
             new Connection(clusterApiUrl(network)),
             Keypair.fromSeed(Buffer.from('ingl_permissionless_payerKeypair'))
         );
-        // // Configure the client to use the local cluster.
-        // setProvider(AnchorProvider.env());
-        // load the switchboard aggregator
-        const aggregator = new AggregatorAccount(
-            program,
-            new PublicKey('GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR')
-        );
-        const provider = program.provider;
-        // const aggregatorData = await aggregator.loadData();
-        const payerKeypair = (provider.wallet as AnchorWallet).payer;
-        // const [queueAccount] = await QueueAccount.load(program, aggregatorData.queuePubkey);
+        // // // Configure the client to use the local cluster.
+        // // setProvider(AnchorProvider.env());
+        // // load the switchboard aggregator
+        // const aggregator = new AggregatorAccount(
+        //     program,
+        //     new PublicKey('GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR')
+        // );
+        // const provider = program.provider;
+        // // const aggregatorData = await aggregator.loadData();
+        // const payerKeypair = (provider.wallet as AnchorWallet).payer;
+        // // const [queueAccount] = await QueueAccount.load(program, aggregatorData.queuePubkey);
 
-        const switchboard = await SwitchboardTestContext.loadDevnetQueue(provider);
+        // const switchboard = await SwitchboardTestContext.loadDevnetQueue(provider);
 
-        const queueOracles = await switchboard.queue.loadOracles();
-        console.log(`# of oracles heartbeating: ${queueOracles.length}`);
-        assert(queueOracles.length > 0, 'No oracles actively heartbeating');
+        // const queueOracles = await switchboard.queue.loadOracles();
+        // console.log(`# of oracles heartbeating: ${queueOracles.length}`);
+        // assert(queueOracles.length > 0, 'No oracles actively heartbeating');
 
-        const { accounts: initVrfClientAccounts, vrfAccount } = await this.getInitVrfAccounts(switchboard);
+        // const { accounts: initVrfClientAccounts, vrfAccount } = await this.getInitVrfAccounts(switchboard, mintKeyPair.publicKey);
 
         try {
-            const { addresses: requestRandomnessAccounts, bumps } = await this.getRequestRandomnessAccounts(
-                switchboard,
-                vrfAccount,
-                payerKeypair
-            );
+            // const { addresses: requestRandomnessAccounts, bumps } = await this.getRequestRandomnessAccounts(
+            //     switchboard,
+            //     vrfAccount,
+            //     payerKeypair
+            // );
+            const feedAccountInfos = this.getFeedAccountInfos(network);
             const instructionAccounts = [
                 payerAccount,
                 nftMintAccount,
@@ -262,10 +264,13 @@ export class NftService {
                 inglConfigAccount,
                 urisAccountAccount,
                 generalAccountAccount,
-                //init vrf accounts
-                ...initVrfClientAccounts,
-                //request randomness accounts
-                ...requestRandomnessAccounts,
+                // //init vrf accounts
+                // ...initVrfClientAccounts,
+                // //request randomness accounts
+                // ...requestRandomnessAccounts,
+
+                //switchbord history buffer account infos
+                ...feedAccountInfos,
 
                 systemProgramAccount,
                 splTokenProgramAccount,
@@ -279,7 +284,7 @@ export class NftService {
             );
             console.log(lookupTableAddresses);
             const mintNftPayload = new MintNftPayload({
-                ...bumps,
+                // ...bumps,
                 log_level: 0,
                 instruction: Instruction.MintNft,
             });
@@ -307,10 +312,10 @@ export class NftService {
         }
     }
 
-    async getInitVrfAccounts(switchboard: SwitchboardTestContext) {
-        const inglVrfKeyPair = Keypair.fromSeed(Buffer.from('ing.ioPermissionless_vrf_keypair'));
+    async getInitVrfAccounts(switchboard: SwitchboardTestContext, mintPubkey: PublicKey) {
+        const inglVrfKeyPair = Keypair.fromSeed(Buffer.from(process.env.VRF_SEED_PHRASE as string));
         const [nftVrfStateKey, _nftVrfStateBump] = PublicKey.findProgramAddressSync(
-            [Buffer.from('ingl_vrf_state_key'), inglVrfKeyPair.publicKey.toBytes()],
+            [Buffer.from('ingl_vrf_state_key'), mintPubkey.toBytes(), inglVrfKeyPair.publicKey.toBytes()],
             PROGRAM_ID
         );
         console.log(inglVrfKeyPair.publicKey.toBase58(), {
@@ -571,9 +576,10 @@ export class NftService {
             twitter_handle: 'https://twitter.com/ingldao',
             discord_invite: 'https://t.co/sMPnyZzYt3',
             validator_name: 'Survivor',
-            collection_uri: 'https://www.meteorologiaenred.com/wp-content/uploads/2022/05/formacion-de-planetas.jpg',
+            collection_uri: 'https://scitechdaily.com/images/Vast-Universe-Concept-1.gif',
             nft_holders_share: 55,
             website: 'https://whitepaper.ingl.io',
+            governance_expiration_time: 40 * 24 * 3600,
         });
         const initProgramInstruction = new TransactionInstruction({
             programId: PROGRAM_ID,
@@ -708,7 +714,7 @@ export class NftService {
         }
     }
 
-    async getWitchboardAccountInfo(network: 'devnet' | 'mainnet-beta', witchboard_feed_pubkey: string) {
+    async getWitchboardHistoryBuffer(network: 'devnet' | 'mainnet-beta', witchboard_feed_pubkey: string) {
         // load the switchboard program
         const program = await SwitchboardProgram.load(
             network,
@@ -728,18 +734,50 @@ export class NftService {
         };
     }
 
+    getFeedAccountInfos(network: 'devnet' | 'mainnet-beta') {
+        return (
+            network === 'devnet'
+                ? [
+                      '9ATrvi6epR5hVYtwNs7BB7VCiYnd4WM7e8MfafWpfiXC', //BTC
+                      '7LLvRhMs73FqcLkA8jvEE1AM2mYZXTmqfUv8GAEurymx', //SOL
+                      '6fhxFvPocWapZ5Wa2miDnrX2jYRFKvFqYnX11GGkBo2f', //ETH
+                      'DR6PqK15tD21MEGSLmDpXwLA7Fw47kwtdZeUMdT7vd7L', //BNB
+                      'HPRYVJQ3DcTqszvorS4gCwbJvvNeWMgaCCoF3Lj3sAgC', //ADA
+                      '2qcLzR7FatMnfCbiB9BdhGsd6SxDgEqWq7xkD62n3xoT', //BCH
+                      'Bux82YCH8DgqFAQTKBxuQHDp3cud5AhD1Kibhjadz22D', //SBR
+                      '9gGvxPErkRubNj1vKE19smLa4Kp89kkzMVyA6TMvmKEZ', //ZEC
+                      '3WNhN4RJwRui4R3k1S9agGzyMZkCwKQkWjoEHbDeAF8J', //LUNA
+                      'CNzjdKHfXqyAeGd2APpzvwLcuPACrFdHb3k6SLsod6Ao', //TRX
+                      '6cBTHY4HQ4PABmhUqVLT4n4bNpmZAi2br5VnqTQoVRUo', //SUSHI
+                      'GRGMtrTszsoNzjqwTxsvkHVAPq5Snju2UzaAws5KBPed', //DOGE
+                      'C9CeLP5B4Lqq7cFppRBUZjt6hrvd99YR3Sk4EPPuAoAC', //LTC
+                      'FReW6u9YPpGQNaeEHNkVqA4KGA2WzbcT87NThwFb7fwm', //XLM
+                      'GEp5pZFjFPqn1teMmx9sLPyADf9N9aQsRn9TE17PwmmL', //LINK
+                      'Fd3UQMqmKCA6SNf6To97PdC2H3EfzYWR5bxr5CBYuFiy', //DOT
+                      'EQHf8ueSzJUPELF6yZkyGfwjbLsDmMwFrAYehmC15b6c', //XMR
+                      'C5x5W7BHVY61ULtWQ3qkP7kpE6zHViWd4AHpKDuAywPw', //SRM
+                      'HnbpTLbdv78hkVCDBZ52o5E6bkqtsZp4tUXBd2E8Sw9x', //PORT
+                      'EbpMMgMkC4Jt2oipUBc2GPL4XQo5uxKT8NpF8NEZWvqL', //PAI
+                  ]
+                : [
+                      '8SXvChNYFhRq4EZuZvnhjrB3jJRQCv4k3P4W6hesH3Ee', //BTC
+                      'E3cqnoFvTeKKNsGmC8YitpMjo2E39hwfoyt2Aiem7dCb', //SOL
+                  ]
+        ).map<AccountMeta>((address) => ({ pubkey: new PublicKey(address), isSigner: false, isWritable: false }));
+    }
+
     async imprintRarity(mint_token_id: PublicKey) {
         const payerAccount: AccountMeta = {
             pubkey: this.wallet.publicKey as PublicKey,
             isSigner: true,
             isWritable: true,
         };
-        const [gem_pubkey, _gem_bump] = PublicKey.findProgramAddressSync(
-            [Buffer.from('gem_account'), mint_token_id.toBuffer()],
+        const [nft_pubkey, _nft_bump] = PublicKey.findProgramAddressSync(
+            [Buffer.from('nft_account'), mint_token_id.toBuffer()],
             PROGRAM_ID
         );
         const gemAccount: AccountMeta = {
-            pubkey: gem_pubkey,
+            pubkey: nft_pubkey,
             isSigner: false,
             isWritable: true,
         };
@@ -784,27 +822,6 @@ export class NftService {
             isSigner: false,
             isWritable: true,
         };
-
-        const btcFeedAccount = await this.getWitchboardAccountInfo(
-            'devnet',
-            '8SXvChNYFhRq4EZuZvnhjrB3jJRQCv4k3P4W6hesH3Ee'
-        );
-
-        const solFeedAccount = await this.getWitchboardAccountInfo(
-            'devnet',
-            'GvDMxPzN1sCj7L26YDK2HnMRXEQmQ2aemov8YBtPS7vR'
-        );
-
-        const ethFeedAccount = await this.getWitchboardAccountInfo(
-            'devnet',
-            'HNStfhaLnqwF2ZtJUizaA9uHDAVB976r2AgTUx9LrdEo'
-        );
-
-        const bnbFeedAccount = await this.getWitchboardAccountInfo(
-            'devnet',
-            '2steFGCbo9FNXksMBGDh9NwixtdG5PdQoaCuR4knyvrB'
-        );
-
         const splTokenProgramAccount: AccountMeta = {
             pubkey: TOKEN_PROGRAM_ID,
             isSigner: false,
@@ -827,11 +844,6 @@ export class NftService {
                 freezeAuthorityAccount,
                 metadataAccount,
                 nftEditionAccount,
-
-                btcFeedAccount,
-                solFeedAccount,
-                ethFeedAccount,
-                bnbFeedAccount,
 
                 splTokenProgramAccount,
                 metaplexProgramAccount,
