@@ -24,9 +24,9 @@ export const toBytesInt32 = (num: number) => {
     return arr;
 };
 
-export const signAndConfirmTransaction = async (
+export const forwardLegacyTransaction = async (
     walletConnection: { connection: Connection; wallet: WalletContextState },
-    instruction: TransactionInstruction,
+    instructions: TransactionInstruction[],
     signingKeypair?: Keypair,
     additionalUnits?: number
 ) => {
@@ -42,7 +42,7 @@ export const signAndConfirmTransaction = async (
         });
         transaction.add(additionalComputeBudgetInstruction);
     }
-    transaction.add(instruction).feePayer = payerKey as PublicKey;
+    transaction.add(...instructions).feePayer = payerKey as PublicKey;
 
     const blockhashObj = await connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhashObj.blockhash;
@@ -52,9 +52,10 @@ export const signAndConfirmTransaction = async (
 
     const signature = await sendTransaction(signedTransaction as Transaction, connection);
     await connection.confirmTransaction({ ...blockhashObj, signature });
+    return signature;
 };
 
-export async function forwardTransaction(
+export async function forwardV0Transaction(
     {
         connection,
         wallet: { publicKey, signTransaction },
@@ -139,7 +140,7 @@ export async function createLookupTable(connection: Connection, wallet: WalletCo
             recentSlot: await connection.getSlot(),
         });
         lookupTableAddresses.push(lookupTableAddress);
-        signature = await forwardTransaction(
+        signature = await forwardV0Transaction(
             { connection, wallet },
             [
                 lookupTableInst,
@@ -156,3 +157,4 @@ export async function createLookupTable(connection: Connection, wallet: WalletCo
     if (signature) await connection.confirmTransaction(signature, 'finalized');
     return lookupTableAddresses;
 }
+

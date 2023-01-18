@@ -104,6 +104,7 @@ const Content: FC = () => {
         nftService
             .mintNft()
             .then((transactionId) => {
+                setTransactionId(transactionId);
                 alert('Your transaction id is: ' + transactionId);
             })
             .catch((error) => console.log(error));
@@ -113,6 +114,7 @@ const Content: FC = () => {
         nftService
             .initProgram()
             .then((transactionId) => {
+                setTransactionId(transactionId);
                 alert('Your transaction id is: ' + transactionId);
             })
             .catch((error) => console.log(error));
@@ -160,15 +162,22 @@ const Content: FC = () => {
                     setIsPending(false);
                     setTransactionId(transactionId);
                 })
-                .catch((error) => {
-                    console.log(error);
-                });
+                .catch((error) => console.log(error));
         } else alert('Please Enter your token mint id');
     };
 
     const getAccountData = async () => {
         const accountData = await nftService.getAccountData();
         console.log(accountData);
+    };
+    const uploadUris = async () => {
+        nftService
+            .uploadUris()
+            .then((transactionId) => {
+                setTransactionId(transactionId);
+                alert('Your transaction id is: ' + transactionId);
+            })
+            .catch((error) => console.log(error));
     };
 
     return (
@@ -184,6 +193,7 @@ const Content: FC = () => {
                         <>
                             <div style={{ display: 'grid', gridAutoFlow: 'column', gap: '15px' }}>
                                 <button onClick={mintCollectedHandler}>Mint Collection</button>
+                                <button onClick={uploadUris}>Upload uris</button>
                                 <button onClick={mintNftHandler}>Mint NFT</button>
                             </div>
                             <div style={{ display: 'grid', gridAutoFlow: 'column', gap: '15px' }}>

@@ -1,5 +1,6 @@
 import { serialize } from '@dao-xyz/borsh';
 import { PROGRAM_ID as METAPLEX_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { BN } from '@project-serum/anchor';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletContextState } from '@solana/wallet-adapter-react';
@@ -26,8 +27,13 @@ import {
 } from '@switchboard-xyz/solana.js';
 import assert from 'assert';
 import { Instruction, PROGRAM_ID } from './constant';
-import { InitPayload, MintNftPayload } from './payload';
-import { createLookupTable, forwardTransaction, getCloseLookupTableInstructions } from './utils';
+import { InitPayload, MintNftPayload, UploadUrisPayload } from './payload';
+import {
+    createLookupTable,
+    forwardLegacyTransaction,
+    forwardV0Transaction,
+    getCloseLookupTableInstructions,
+} from './utils';
 
 export enum NftType {
     Nft,
@@ -298,7 +304,7 @@ export class NftService {
                 this.wallet.publicKey as PublicKey,
                 lookupTableAddresses
             );
-            return await forwardTransaction(
+            return await forwardV0Transaction(
                 { connection: this.connection, wallet: this.wallet },
                 [mintNftInstruction],
                 {
@@ -347,7 +353,7 @@ export class NftService {
                     ...trans.keys.filter((key) => key.isSigner).map((_) => ({ ..._, pubkey: _.pubkey.toBase58() }))
                 )
             );
-            const txId = await forwardTransaction(
+            const txId = await forwardV0Transaction(
                 { connection: this.connection, wallet: this.wallet },
                 transactionObject.ixns,
                 { signerKeypairs: [inglVrfKeyPair], commitment: 'finalized' }
@@ -397,7 +403,7 @@ export class NftService {
                 )
             );
             console.log(accounts, payerWalletAddress.toBase58());
-            const signature = await forwardTransaction(
+            const signature = await forwardV0Transaction(
                 { connection: this.connection, wallet: this.wallet },
                 transactionObject.ixns,
                 { signerKeypairs: transactionObject.signers }
@@ -607,7 +613,7 @@ export class NftService {
             ],
         });
         try {
-            return await forwardTransaction(
+            return await forwardV0Transaction(
                 { connection: this.connection, wallet: this.wallet },
                 [initProgramInstruction],
                 {
@@ -1042,4 +1048,83 @@ export class NftService {
             return response;
         }
     }
+
+    async uploadUris() {
+        const payerAccount: AccountMeta = {
+            pubkey: this.wallet.publicKey as PublicKey,
+            isSigner: true,
+            isWritable: true,
+        };
+        const [inglConfigKey, _inglConfigBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from('ingl_config')],
+            PROGRAM_ID
+        );
+        const inglConfigAccount: AccountMeta = {
+            isSigner: false,
+            isWritable: false,
+            pubkey: inglConfigKey,
+        };
+        const [urisAccountKey, _urisAccountBump] = PublicKey.findProgramAddressSync(
+            [Buffer.from('uris_account')],
+            PROGRAM_ID
+        );
+        const urisAccount: AccountMeta = {
+            isSigner: false,
+            isWritable: true,
+            pubkey: urisAccountKey,
+        };
+        // rarities: [5300, 3000, 1000, 700],
+        // rarity_names: ['Jupiter', 'Neptune', 'Mars', 'Earth'],
+        const uploadPayload = new UploadUrisPayload({
+            instruction: Instruction.UploadUris,
+            log_level: 0,
+            rarity: 5300,
+            uris: [],
+        });
+        const uploadInstruction = new TransactionInstruction({
+            programId: PROGRAM_ID,
+            data: Buffer.from(serialize(uploadPayload)),
+            keys: [payerAccount, inglConfigAccount, urisAccount],
+        });
+        try {
+            return await forwardLegacyTransaction({ connection: this.connection, wallet: this.wallet }, [
+                uploadInstruction,
+            ]);
+        } catch (error) {
+            throw new Error('Error occured when uploading uris' + error);
+        }
+    }
+}
+
+interface ValidatorMetaData {
+    rarities: number[];
+    rarity_names: string[];
+    twitter_handle: string;
+    discord_invite: string;
+}
+
+interface ValidatorRegistration extends ValidatorMetaData {
+    proposal_quorum: number;
+    init_commission: number; //in percentage
+    total_delegated_stake: string; //in lamports (big number)
+    initial_redemption_fee: number;
+    is_validator_id_switchable: boolean;
+    unit_backing: string; //big number
+    redemption_fee_duration: number;
+    creator_royalties: number;
+    validator_name: string;
+    collection_uri: string;
+    nft_holders_share: number;
+    website: string;
+    governance_expiration_time: number;
+    default_uri: string;
+}
+interface InglValidator extends Omit<ValidatorRegistration, keyof ValidatorMetaData> {
+    validator_id: string;
+    validator_apy: number;
+    current_skip_rate: number;
+    vote_account_id: number;
+    collection_id: string;
+    total_delegated_count: number;
+    total_secondary_stake: string; // in lamports (big number)
 }

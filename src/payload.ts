@@ -140,3 +140,23 @@ export class InitPayload {
         this.website = properties.website;
     }
 }
+
+export class UploadUrisPayload {
+    @field({ type: 'u8' })
+    public instruction!: Instruction;
+
+    @field({ type: vec('string') })
+    public uris!: string[];
+
+    @field({ type: 'u8' })
+    public rarity!: number;
+
+    @field({ type: 'u8' })
+    public log_level!: number;
+
+    constructor(properties: { instruction: Instruction; uris: string[]; rarity: number; log_level: number }) {
+        this.instruction = properties.instruction;
+        this.uris = properties.uris;
+        this.log_level = properties.log_level;
+    }
+}
